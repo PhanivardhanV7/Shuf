@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shuf</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── BACKGROUND SLIDESHOW ── */
+    .bg-slide {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 2s ease-in-out;
+    }
+    .bg-slide.active { opacity: 1; }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .header, .layout, .toast {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 10px;
+    }
+
+    .site-logo {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      border-radius: 10px;
+      filter: drop-shadow(0 0 12px rgba(108,99,255,0.7));
+    }
+
+    .header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.6rem;
+      color: #ffffff;
+      letter-spacing: 4px;
+      text-shadow: 0 0 30px rgba(108,99,255,0.6), 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .header p {
+      color: #777;
+      font-size: 0.95rem;
+      margin-top: 6px;
+      letter-spacing: 1px;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .main-col { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── STATS SIDEBAR ── */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #1a1a2e, #16162a);
+      border: 1px solid #2e2e4e;
+      border-radius: 14px;
+      padding: 20px 16px;
+      text-align: center;
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.2rem;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .stat-card.total .stat-value  { color: #6c63ff; text-shadow: 0 0 20px rgba(108,99,255,0.5); }
+    .stat-card.shuffled .stat-value { color: #00e5ff; text-shadow: 0 0 20px rgba(0,229,255,0.4); }
+    .stat-card.dupes .stat-value   { color: #ff9800; text-shadow: 0 0 20px rgba(255,152,0,0.4); }
+
+    /* ── SECTION LABELS ── */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: -6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #inlineClearBtn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      background: #1e1e2e;
+      color: #ff5555;
+      border: 1px solid #ff555544;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .output-actions { display: flex; gap: 6px; }
+
+    #inlineCopyBtn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      background: #1e1e2e;
+      color: #6c63ff;
+      border: 1px solid #6c63ff66;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #inlineCopyBtn:hover {
+      background: #1a1a30;
+      border-color: #6c63ff;
+    }
+
+    #inlineClearOutputBtn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      background: #1e1e2e;
+      color: #ffffff;
+      border: 1px solid #ffffff44;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #inlineClearOutputBtn:hover {
+      background: #2a2a3e;
+      border-color: #ffffff99;
+    }
+
+    /* ── TEXTAREA ── */
+    textarea {
+      width: 100%;
+      height: 160px;
+      background: #111118;
+      border: 1px solid #2e2e3e;
+      border-radius: 10px;
+      color: #e0e0e0;
+      font-size: 0.93rem;
+      padding: 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: 'Inter', monospace;
+    }
+    textarea:focus { border-color: #6c63ff; }
+    textarea::placeholder { color: #444; }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 11px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+    button:active { transform: scale(0.97); }
+    button:hover { opacity: 0.85; }
+
+    #shuffleBtn {
+      background: linear-gradient(135deg, #6c63ff, #9b59b6);
+      color: #fff;
+      flex: 1;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+    }
+    #clearBtn { background: #1e1e2e; color: #aaa; border: 1px solid #2e2e3e; }
+
+    /* ── DUPLICATE CHECKBOX ── */
+    .dup-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #aaa;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .dup-toggle input[type="checkbox"] {
+      appearance: none;
+      width: 16px; height: 16px;
+      border: 2px solid #ff9800;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .dup-toggle input[type="checkbox"]:checked {
+      background: #ff9800;
+    }
+    .dup-toggle input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -2px; left: 1px;
+      font-size: 12px;
+      color: #000;
+      font-weight: 900;
+    }
+
+    /* ── SHEET TABLE ── */
+    .sheet-wrapper {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid #2e2e3e;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.87rem;
+    }
+
+    thead tr th {
+      background: #1a1a2e;
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 14px;
+      border: 1px solid #2e2e3e;
+      text-align: center;
+      letter-spacing: 1px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    td.row-num {
+      background: #1a1a2e;
+      color: #555;
+      font-weight: 700;
+      text-align: center;
+      padding: 7px 12px;
+      border: 1px solid #252535;
+      min-width: 44px;
+      user-select: none;
+      font-size: 0.8rem;
+    }
+
+    td.cell {
+      background: #0e0e18;
+      color: #a0d4ff;
+      padding: 7px 16px;
+      border: 1px solid #1e1e2e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 640px;
+      transition: background 0.15s;
+    }
+    td.cell:hover { background: #181828; }
+
+    td.cell.duplicate {
+      background: #1f1200;
+      color: #ff9800;
+    }
+    td.cell.duplicate:hover { background: #2a1800; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #333;
+      font-style: italic;
+      background: #0e0e18;
+      font-size: 0.9rem;
+    }
+
+    /* ── DELETE DUPLICATES BOX ── */
+    .del-dup-box {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      background: linear-gradient(135deg, #1a0e00, #221400);
+      border: 2px solid #ff9800;
+      border-radius: 14px;
+      padding: 20px 24px;
+      box-shadow: 0 0 24px rgba(255,152,0,0.2);
+    }
+    .del-dup-box.visible { display: flex; }
+
+    .del-dup-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .del-dup-icon { font-size: 1.1rem; }
+    .del-dup-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 3px;
+      color: #ff9800;
+      text-shadow: 0 0 16px rgba(255,152,0,0.5);
+    }
+    .del-dup-count {
+      margin-left: auto;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #ff9800;
+      background: #2a1800;
+      border: 1px solid #ff980066;
+      border-radius: 20px;
+      padding: 3px 12px;
+      letter-spacing: 1px;
+    }
+    .del-dup-desc {
+      font-size: 0.9rem;
+      color: #cc8833;
+      margin: 0;
+    }
+    .del-dup-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-yes {
+      background: #ff9800;
+      color: #000;
+      font-weight: 800;
+      padding: 13px 40px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 0 18px rgba(255,152,0,0.5);
+    }
+    .btn-yes:hover { opacity: 0.9; box-shadow: 0 0 28px rgba(255,152,0,0.8); }
+    .btn-yes:active { transform: scale(0.97); }
+
+    .btn-no {
+      background: #111118;
+      color: #fff;
+      font-weight: 700;
+      padding: 13px 40px;
+      border-radius: 10px;
+      border: 2px solid #555;
+      cursor: pointer;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: opacity 0.2s, transform 0.1s, border-color 0.2s;
+    }
+    .btn-no:hover { border-color: #aaa; opacity: 0.9; }
+    .btn-no:active { transform: scale(0.97); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      bottom: auto;
+      left: auto;
+      transform: translateY(-20px);
+      background: #6c63ff;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: 0 4px 20px rgba(108,99,255,0.5);
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; flex-wrap: wrap; position: static; }
+      .stat-card { flex: 1; min-width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background slideshow -->
+  <div class="bg-slide active" id="bg0" style="background-image: url('skull1.jpg')"></div>
+  <div class="bg-slide" id="bg1" style="background-image: url('skull2.jpg')"></div>
+
+  <div class="header">
+    <div class="header-title">
+      <img src="shuff.jpeg" alt="Shuf logo" class="site-logo" />
+      <h1>SHUF</h1>
+    </div>
+    <p>Paste · Shuffle · Detect Duplicates</p>
+  </div>
+
+  <div class="layout">
+
+    <!-- LEFT: stats sidebar -->
+    <div class="sidebar">
+      <div class="stat-card total">
+        <div class="stat-label">Total Pasted</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card shuffled">
+        <div class="stat-label">Shuffled</div>
+        <div class="stat-value" id="statShuffled">0</div>
+      </div>
+      <div class="stat-card dupes">
+        <div class="stat-label">Duplicates</div>
+        <div class="stat-value" id="statDupes">0</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: main content -->
+    <div class="main-col">
+
+      <div class="section-label">Paste Your Links <button id="inlineClearBtn" onclick="clearInput()">✕ Clear</button></div>
+      <textarea id="input" placeholder="https://example.com&#10;https://google.com&#10;https://github.com&#10;..." oninput="updateTotal()"></textarea>
+
+      <div class="controls">
+        <button id="shuffleBtn" onclick="shuffleLinks()">🔀 Shuffle</button>
+        <label class="dup-toggle" title="Highlight duplicate links in orange">
+          <input type="checkbox" id="dupCheck" checked />
+          Highlight Duplicates
+        </label>
+        <button id="clearBtn" onclick="clearAll()">All Clear</button>
+      </div>
+
+      <!-- Delete Duplicates Section -->
+      <div class="del-dup-box" id="delDupBox">
+        <div class="del-dup-header">
+          <span class="del-dup-icon">💀</span>
+          <span class="del-dup-title">Delete Duplicates</span>
+          <span class="del-dup-count" id="delDupCount"></span>
+        </div>
+        <p class="del-dup-desc" id="delDupDesc">Duplicate links detected. Remove extras and keep the original?</p>
+        <div class="del-dup-actions">
+          <button class="btn-yes" onclick="removeDuplicates()">✓ Yes</button>
+          <button class="btn-no" onclick="dismissBanner()">✕ No</button>
+        </div>
+      </div>
+
+      <div class="section-label">Shuffled Output <div class="output-actions"><button id="inlineCopyBtn" onclick="copyOutput()">⧉ Copy</button><button id="inlineClearOutputBtn" onclick="clearOutput()">✕ Clear</button></div></div>
+      <div class="sheet-wrapper" id="sheetWrapper">
+        <div class="empty-state">Shuffled links will appear here...</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let shuffledLinks = [];
+
+    function getLinks(raw) {
+      return raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    }
+
+    function updateTotal() {
+      const links = getLinks(document.getElementById('input').value);
+      document.getElementById('statTotal').textContent = links.length;
+    }
+
+    function shuffleLinks() {
+      const raw = document.getElementById('input').value;
+      const links = getLinks(raw);
+
+      if (links.length === 0) { renderTable([]); return; }
+
+      for (let i = links.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [links[i], links[j]] = [links[j], links[i]];
+      }
+
+      shuffledLinks = links;
+      renderTable(links);
+    }
+
+    function renderTable(links) {
+      const wrapper = document.getElementById('sheetWrapper');
+      const showDups = document.getElementById('dupCheck').checked;
+
+      document.getElementById('statShuffled').textContent = links.length;
+
+      if (links.length === 0) {
+        wrapper.innerHTML = '<div class="empty-state">Shuffled links will appear here...</div>';
+        document.getElementById('statDupes').textContent = 0;
+        document.getElementById('delDupBox').classList.remove('visible');
+        return;
+      }
+
+      const seen = {};
+      links.forEach(l => { seen[l] = (seen[l] || 0) + 1; });
+      const dupCount = links.filter(l => seen[l] > 1).length;
+      const uniqueDupLinks = new Set(links.filter(l => seen[l] > 1)).size;
+      document.getElementById('statDupes').textContent = dupCount;
+
+      // Show/hide delete duplicates box
+      const box = document.getElementById('delDupBox');
+      if (dupCount > 0) {
+        document.getElementById('delDupCount').textContent = `${dupCount} duplicate${dupCount !== 1 ? 's' : ''} found`;
+        document.getElementById('delDupDesc').textContent = `${dupCount} duplicate row${dupCount !== 1 ? 's' : ''} detected. Remove extras and keep the original of each?`;
+        box.classList.add('visible');
+      } else {
+        box.classList.remove('visible');
+      }
+
+      let html = '<table><thead><tr><th>#</th><th>A — Link</th></tr></thead><tbody>';
+      links.forEach((link, i) => {
+        const isDup = showDups && seen[link] > 1;
+        html += `<tr>
+          <td class="row-num">${i + 1}</td>
+          <td class="cell${isDup ? ' duplicate' : ''}" title="${escHtml(link)}">${escHtml(link)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      wrapper.innerHTML = html;
+    }
+
+    function removeDuplicates() {
+      const unique = [...new Set(shuffledLinks)];
+      shuffledLinks = unique;
+      document.getElementById('delDupBox').classList.remove('visible');
+      renderTable(shuffledLinks);
+      document.getElementById('statShuffled').textContent = shuffledLinks.length;
+      showToast(`Duplicates removed — ${unique.length} unique link${unique.length !== 1 ? 's' : ''} kept`);
+    }
+
+    function dismissBanner() {
+      document.getElementById('delDupBox').classList.remove('visible');
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function copyOutput() {
+      if (!shuffledLinks.length) return;
+      navigator.clipboard.writeText(shuffledLinks.join('\n')).then(() => {
+        showToast(`✓ Copied ${shuffledLinks.length} link${shuffledLinks.length !== 1 ? 's' : ''}`);
+      });
+    }
+
+    function clearOutput() {
+      shuffledLinks = [];
+      document.getElementById('sheetWrapper').innerHTML = '<div class="empty-state">Shuffled links will appear here...</div>';
+      document.getElementById('statShuffled').textContent = 0;
+      document.getElementById('statDupes').textContent = 0;
+      document.getElementById('delDupBox').classList.remove('visible');
+    }
+
+    function clearInput() {
+      document.getElementById('input').value = '';
+      document.getElementById('statTotal').textContent = 0;
+    }
+
+    function clearAll() {
+      document.getElementById('input').value = '';
+      shuffledLinks = [];
+      renderTable([]);
+      document.getElementById('statTotal').textContent = 0;
+      document.getElementById('delDupBox').classList.remove('visible');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // re-render on checkbox toggle
+    document.getElementById('dupCheck').addEventListener('change', () => {
+      if (shuffledLinks.length) renderTable(shuffledLinks);
+    });
+
+    // Background slideshow
+    const slides = document.querySelectorAll('.bg-slide');
+    let current = 0;
+    setInterval(() => {
+      slides[current].classList.remove('active');
+      current = (current + 1) % slides.length;
+      slides[current].classList.add('active');
+    }, 6000);
+  </script>
+
+</body>
+</html>
