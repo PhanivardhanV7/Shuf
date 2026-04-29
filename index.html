@@ -12,7 +12,7 @@
     body {
       font-family: 'Inter', sans-serif;
       min-height: 100vh;
-      background-color: #0a0a0a;
+      background-color: #1a1a1a;
       color: #e0e0e0;
       display: flex;
       flex-direction: column;
@@ -37,7 +37,7 @@
       content: '';
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.62);
+      background: rgba(0, 0, 0, 0.72);
       z-index: 1;
       pointer-events: none;
     }
@@ -78,7 +78,7 @@
     }
 
     .header p {
-      color: #777;
+      color: #888;
       font-size: 0.95rem;
       margin-top: 6px;
       letter-spacing: 1px;
@@ -111,15 +111,17 @@
       border-radius: 14px;
       padding: 20px 16px;
       text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
     }
 
     .stat-card .stat-label {
       font-size: 0.72rem;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: #666;
+      color: #ffffff;
       margin-bottom: 8px;
+      text-shadow: 0 0 8px rgba(255,255,255,0.2);
     }
 
     .stat-card .stat-value {
@@ -246,6 +248,17 @@
     }
     #clearBtn { background: #1e1e2e; color: #aaa; border: 1px solid #2e2e3e; }
 
+    #dupBtn {
+      background: linear-gradient(135deg, #2a1800, #3a2000);
+      color: #ff9800;
+      border: 1px solid #ff980066;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      flex: 1;
+    }
+    #dupBtn:hover { opacity: 0.85; border-color: #ff9800; }
+
     /* ── DUPLICATE CHECKBOX ── */
     .dup-toggle {
       display: flex;
@@ -295,7 +308,7 @@
 
     thead tr th {
       background: #1a1a2e;
-      color: #fff;
+      color: #ffffff;
       font-weight: 700;
       padding: 8px 14px;
       border: 1px solid #2e2e3e;
@@ -303,11 +316,12 @@
       letter-spacing: 1px;
       font-size: 0.8rem;
       text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
     }
 
     td.row-num {
       background: #1a1a2e;
-      color: #555;
+      color: #FFD700;
       font-weight: 700;
       text-align: center;
       padding: 7px 12px;
@@ -315,6 +329,7 @@
       min-width: 44px;
       user-select: none;
       font-size: 0.8rem;
+      text-shadow: 0 0 8px rgba(255,215,0,0.4);
     }
 
     td.cell {
@@ -494,9 +509,10 @@
 
       <div class="controls">
         <button id="shuffleBtn" onclick="shuffleLinks()">🔀 Shuffle</button>
+        <button id="dupBtn" onclick="detectDuplicates()">💀 Duplicates</button>
         <label class="dup-toggle" title="Highlight duplicate links in orange">
           <input type="checkbox" id="dupCheck" checked />
-          Highlight Duplicates
+          Highlight
         </label>
         <button id="clearBtn" onclick="clearAll()">All Clear</button>
       </div>
@@ -515,7 +531,7 @@
         </div>
       </div>
 
-      <div class="section-label">Shuffled Output <div class="output-actions"><button id="inlineCopyBtn" onclick="copyOutput()">⧉ Copy</button><button id="inlineClearOutputBtn" onclick="clearOutput()">✕ Clear</button></div></div>
+      <div class="section-label"><span id="outputLabel">Shuffled Output</span> <div class="output-actions"><button id="inlineCopyBtn" onclick="copyOutput()">⧉ Copy</button><button id="inlineClearOutputBtn" onclick="clearOutput()">✕ Clear</button></div></div>
       <div class="sheet-wrapper" id="sheetWrapper">
         <div class="empty-state">Shuffled links will appear here...</div>
       </div>
@@ -550,6 +566,7 @@
       }
 
       shuffledLinks = links;
+      document.getElementById('outputLabel').textContent = 'Shuffled Output';
       renderTable(links);
     }
 
@@ -572,15 +589,8 @@
       const uniqueDupLinks = new Set(links.filter(l => seen[l] > 1)).size;
       document.getElementById('statDupes').textContent = dupCount;
 
-      // Show/hide delete duplicates box
-      const box = document.getElementById('delDupBox');
-      if (dupCount > 0) {
-        document.getElementById('delDupCount').textContent = `${dupCount} duplicate${dupCount !== 1 ? 's' : ''} found`;
-        document.getElementById('delDupDesc').textContent = `${dupCount} duplicate row${dupCount !== 1 ? 's' : ''} detected. Remove extras and keep the original of each?`;
-        box.classList.add('visible');
-      } else {
-        box.classList.remove('visible');
-      }
+      // Show/hide delete duplicates box — only via Duplicates button
+      // (auto-show removed; use the Duplicates button instead)
 
       let html = '<table><thead><tr><th>#</th><th>A — Link</th></tr></thead><tbody>';
       links.forEach((link, i) => {
@@ -601,6 +611,34 @@
       renderTable(shuffledLinks);
       document.getElementById('statShuffled').textContent = shuffledLinks.length;
       showToast(`Duplicates removed — ${unique.length} unique link${unique.length !== 1 ? 's' : ''} kept`);
+    }
+
+    function detectDuplicates() {
+      // Always use the original pasted input — never the shuffled order
+      const links = getLinks(document.getElementById('input').value);
+
+      if (links.length === 0) { showToast('No links to check'); return; }
+
+      const seen = {};
+      links.forEach(l => { seen[l] = (seen[l] || 0) + 1; });
+      const dupCount = links.filter(l => seen[l] > 1).length;
+
+      // Always load original (unshuffled) links into the output table
+      shuffledLinks = links;
+      renderTable(links);
+
+      // Update output label
+      document.getElementById('outputLabel').textContent = 'Duplicate Check Output';
+
+      if (dupCount === 0) {
+        showToast('✓ No duplicates found');
+        document.getElementById('delDupBox').classList.remove('visible');
+        return;
+      }
+
+      document.getElementById('delDupCount').textContent = `${dupCount} duplicate${dupCount !== 1 ? 's' : ''} found`;
+      document.getElementById('delDupDesc').textContent = `${dupCount} duplicate row${dupCount !== 1 ? 's' : ''} detected. Remove extras and keep the original of each?`;
+      document.getElementById('delDupBox').classList.add('visible');
     }
 
     function dismissBanner() {
@@ -624,11 +662,13 @@
       document.getElementById('statShuffled').textContent = 0;
       document.getElementById('statDupes').textContent = 0;
       document.getElementById('delDupBox').classList.remove('visible');
+      showToast('✓ Output cleared');
     }
 
     function clearInput() {
       document.getElementById('input').value = '';
       document.getElementById('statTotal').textContent = 0;
+      showToast('✓ Input cleared');
     }
 
     function clearAll() {
@@ -637,6 +677,7 @@
       renderTable([]);
       document.getElementById('statTotal').textContent = 0;
       document.getElementById('delDupBox').classList.remove('visible');
+      showToast('✓ All cleared');
     }
 
     function showToast(msg) {
@@ -646,9 +687,14 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // re-render on checkbox toggle
-    document.getElementById('dupCheck').addEventListener('change', () => {
-      if (shuffledLinks.length) renderTable(shuffledLinks);
+    // Highlight checkbox is always on — prevent unchecking
+    document.getElementById('dupCheck').addEventListener('change', function () {
+      if (!this.checked) {
+        this.checked = true;
+        showToast('⚠️ Highlight Duplicates is always on');
+      } else {
+        if (shuffledLinks.length) renderTable(shuffledLinks);
+      }
     });
 
     // Background slideshow
